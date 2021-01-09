@@ -27,6 +27,7 @@ package io.airbyte.server.handlers;
 import io.airbyte.api.model.ImportRead;
 import io.airbyte.api.model.ImportRead.StatusEnum;
 import io.airbyte.commons.io.ArchiveHelper;
+import io.airbyte.commons.io.FileTtlManager;
 import io.airbyte.commons.lang.Exceptions;
 import io.airbyte.config.ConfigSchema;
 import io.airbyte.config.DestinationConnection;
@@ -40,6 +41,7 @@ import io.airbyte.config.persistence.ConfigRepository;
 import io.airbyte.config.persistence.PersistenceConstants;
 import io.airbyte.server.converters.ConfigConverter;
 import io.airbyte.validation.json.JsonValidationException;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -60,8 +62,10 @@ public class MigrationHandler {
 
   private final String version;
   private final ConfigRepository configRepository;
+  private final FileTtlManager fileTtlManager;
 
-  public MigrationHandler(final String version, final ConfigRepository configRepository) {
+  public MigrationHandler(final String version, final ConfigRepository configRepository, final FileTtlManager fileTtlManager) {
+    this.fileTtlManager = fileTtlManager;
     this.version = version;
     this.configRepository = configRepository;
   }
@@ -70,12 +74,13 @@ public class MigrationHandler {
     try {
       final Path tempFolder = Files.createTempDirectory("airbyte_archive");
       final File archive = Files.createTempFile(ARCHIVE_FILE_NAME, ".tar.gz").toFile();
-      archive.deleteOnExit();
+      fileTtlManager.registerTtl(archive.toPath());
       try {
         exportVersionFile(tempFolder);
         exportAirbyteConfig(tempFolder);
         exportAirbyteDatabase(tempFolder);
         ArchiveHelper.createArchive(tempFolder, archive.toPath());
+        final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
       } finally {
         FileUtils.deleteDirectory(tempFolder.toFile());
       }

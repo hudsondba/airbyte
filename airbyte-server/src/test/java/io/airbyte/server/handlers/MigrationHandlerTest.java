@@ -26,11 +26,14 @@ package io.airbyte.server.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.postgresql.hostchooser.HostRequirement.any;
 
+import io.airbyte.commons.io.FileTtlManager;
 import io.airbyte.config.DestinationConnection;
 import io.airbyte.config.SourceConnection;
 import io.airbyte.config.StandardDestinationDefinition;
@@ -58,11 +61,13 @@ public class MigrationHandlerTest {
 
   private ConfigRepository configRepository;
   private MigrationHandler migrationHandler;
+  private FileTtlManager fileTtleManager;
 
   @BeforeEach
   void setUp() {
     configRepository = mock(ConfigRepository.class);
-    migrationHandler = new MigrationHandler("test-version", configRepository);
+    fileTtleManager = mock(FileTtlManager.class);
+    migrationHandler = new MigrationHandler("test-version", configRepository, fileTtleManager);
   }
 
   private StandardWorkspace generateWorkspace() {
@@ -124,6 +129,7 @@ public class MigrationHandlerTest {
     verify(configRepository, times(1)).writeDestinationConnection(resultDestinationConnection.capture());
     verify(configRepository, times(2)).writeStandardSync(resultSync.capture());
     verify(configRepository, times(1)).writeStandardSchedule(resultSyncSchedule.capture());
+    verify(fileTtleManager).registerTtl(any());
 
     assertEquals(workspace, resultWorkspace.getValue());
     assertEquals(standardSource, resultStandardSource.getValue());

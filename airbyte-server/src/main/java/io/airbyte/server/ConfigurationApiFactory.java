@@ -24,6 +24,7 @@
 
 package io.airbyte.server;
 
+import io.airbyte.commons.io.FileTtlManager;
 import io.airbyte.config.persistence.ConfigRepository;
 import io.airbyte.scheduler.client.CachingSchedulerJobClient;
 import io.airbyte.scheduler.persistence.JobPersistence;
@@ -36,6 +37,7 @@ public class ConfigurationApiFactory implements Factory<ConfigurationApi> {
   private static JobPersistence jobPersistence;
   private static CachingSchedulerJobClient schedulerJobClient;
   private static String airbyteVersion;
+  private static FileTtlManager archiveTtlManager;
 
   public static void setConfigRepository(final ConfigRepository configRepository) {
     ConfigurationApiFactory.configRepository = configRepository;
@@ -53,13 +55,18 @@ public class ConfigurationApiFactory implements Factory<ConfigurationApi> {
     ConfigurationApiFactory.airbyteVersion = airbyteVersion;
   }
 
+  public static void setArchiveTtlManager(final FileTtlManager archiveTtlManager) {
+    ConfigurationApiFactory.archiveTtlManager = archiveTtlManager;
+  }
+
   @Override
   public ConfigurationApi provide() {
     return new ConfigurationApi(
         ConfigurationApiFactory.airbyteVersion,
         ConfigurationApiFactory.configRepository,
         ConfigurationApiFactory.jobPersistence,
-        ConfigurationApiFactory.schedulerJobClient);
+        ConfigurationApiFactory.schedulerJobClient,
+        ConfigurationApiFactory.archiveTtlManager);
   }
 
   @Override
